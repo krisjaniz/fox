@@ -1,0 +1,94 @@
+#include <TinyWireM.h>
+#define MMA7660_ADDR  0x4c
+#define PCA9632_ADDR 0x62
+byte led2Values[8]={B00000011,B00000111,B00001111,B00011111,B00111111,B01111111,B00000001,B00000011};
+byte ledNum[7]={2,2,3,4,5,5,2};
+byte counteri=1;
+byte counterj=1;
+int val = 0;
+uint8_t data_read;
+void setup()
+{
+  pinMode(4, OUTPUT);
+  pinMode(1, INPUT);
+  digitalWrite(4, HIGH);
+  TinyWireM.begin();
+  TinyWireM.beginTransmission(PCA9632_ADDR);
+  TinyWireM.send(0x00);
+  TinyWireM.send(B10000001);
+  TinyWireM.endTransmission();
+  delay(10);
+  TinyWireM.beginTransmission(PCA9632_ADDR);
+  TinyWireM.send(0x01);
+  TinyWireM.send(B00010101);
+  TinyWireM.endTransmission();
+  TinyWireM.beginTransmission(PCA9632_ADDR);
+  TinyWireM.send(0x08);
+  TinyWireM.send(B10101010);
+  TinyWireM.endTransmission();
+  TinyWireM.beginTransmission(MMA7660_ADDR);
+  TinyWireM.send(0x07); // write to MODE register
+  TinyWireM.send(0x00); // standby mode
+  TinyWireM.endTransmission();
+  TinyWireM.beginTransmission(MMA7660_ADDR);
+  TinyWireM.send(0x05); // write to SPCNT register
+  TinyWireM.send(0x00); // no sleep count
+  TinyWireM.endTransmission();
+  TinyWireM.beginTransmission(MMA7660_ADDR);
+  TinyWireM.send(0x06); // write to INTSU register
+  TinyWireM.send(0xE0); // configure shake interrupt on 3 axes
+  TinyWireM.endTransmission();
+  TinyWireM.beginTransmission(MMA7660_ADDR);
+  TinyWireM.send(0x09); // write to PDET register
+  TinyWireM.send(0xE0); // no tap detection
+  TinyWireM.endTransmission();
+  TinyWireM.beginTransmission(MMA7660_ADDR);
+  TinyWireM.send(0x04); // write to SR register
+  TinyWireM.send(0x02); // 32 samples/sec
+  TinyWireM.endTransmission();
+  TinyWireM.beginTransmission(MMA7660_ADDR);
+  TinyWireM.send(0x0A); // write to PD register
+  TinyWireM.send(0x00); // no tap detection debounce count enabled
+  TinyWireM.endTransmission();
+  TinyWireM.beginTransmission(MMA7660_ADDR);
+  TinyWireM.send(0x07); // write to MODE register
+  TinyWireM.send(0x81); // active mode, open-drain and active high
+  TinyWireM.endTransmission();
+  delay(50);
+  digitalWrite(4, LOW);
+  delay(50);
+  digitalWrite(4, HIGH);
+  delay(100);
+  digitalWrite(4, LOW);
+}
+void loop()
+{
+  val=digitalRead(1);
+  TinyWireM.begin();
+  TinyWireM.beginTransmission(MMA7660_ADDR);
+  TinyWireM.send(0x03);
+  TinyWireM.endTransmission();
+  TinyWireM.beginTransmission(MMA7660_ADDR);
+  TinyWireM.requestFrom(MMA7660_ADDR,1);
+  while(TinyWireM.available())
+  {
+    data_read = TinyWireM.read();
+  }
+  TinyWireM.endTransmission();
+  digitalWrite(4, val);  
+  if(val==HIGH) {
+    TinyWireM.beginTransmission(PCA9632_ADDR);
+    TinyWireM.send(ledNum[counterj]);
+    TinyWireM.send(led2Values[counteri]);
+    TinyWireM.endTransmission();
+    counteri=counteri+1;
+    if(counteri>7) { 
+      counteri=1; 
+      counterj=counterj+1; 
+    }
+    if(counterj>4) { 
+      counterj=1; 
+    }
+  delay(10);
+  }
+}
